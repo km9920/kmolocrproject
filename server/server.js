@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import dotenv from "dotenv";
 import cors from "cors";
 import userRoute from "./routes/userRoute.js"
+import uploadRoute from "./routes/uploadRoute.js"
 
 const app = express();
 app.use(bodyParser.json());
@@ -24,3 +25,4 @@ mongoose.connect(URL).then(() => {
 }).catch(err => console.log(err));
 
 app.use("/api/user", userRoute);
+app.use("/api/uploads", uploadRoute);
