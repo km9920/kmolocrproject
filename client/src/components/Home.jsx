@@ -148,7 +148,8 @@ const Home = () => {
             const blob = base64toBlob(pdfFile);
             const url = URL.createObjectURL(blob);
 
-            await axios.post("http://localhost:5000/api/uploads/pdffileupload", formData)
+            const processingResult = await axios.post("http://localhost:5000/api/uploads/pdffileupload", formData)
+            console.log('processingResult', processingResult)
             .then((response) => {
                 toast.success("File uploaded successfully", {position:"top-right"})
                 fetchDataByFileName(pdfSelectedFile.name);
@@ -240,8 +241,7 @@ const Home = () => {
             const blob = base64toBlob(imageFile);
             const url = URL.createObjectURL(blob);
 
-            const processingResult = await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
-            console.log("processingResult", processingResult)
+            await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
             .then((response) => {
                 toast.success("File uploaded successfully", {position:"top-right"})
                 setImageFilePath(url);
