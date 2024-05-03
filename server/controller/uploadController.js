@@ -1,6 +1,7 @@
 import UploadPdf from '../model/uploadPdfModel.js';
 import UploadImage from '../model/uploadImageModel.js';
 import Detections from "../model/detectionModel.js";
+import axios from 'axios';
 
 export const uploadpdffile = async (req, res) => {
     try {
@@ -10,8 +11,10 @@ export const uploadpdffile = async (req, res) => {
         req.body.fileSize = req.file.size;
         req.body.fileOriginalName = req.file.originalname;
 
-        const pdfData = await new UploadPdf(req.body);
-        const savedPDF = await pdfData.save();
+        //const pdfData = await new UploadPdf(req.body);
+        //const savedPDF = await pdfData.save();
+
+        const savedPDF =await axios.post("http://121.140.65.24:5000/pdf/predict");
         res.status(200).json(savedPDF);
 
     } catch (error) {

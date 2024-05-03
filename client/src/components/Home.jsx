@@ -18,6 +18,9 @@ import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 const Home = () => {
+
+    const [pagesurl, setPagesurl] = useState([]);
+
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
         sidebarTabs: (defaultTabs) => [
             {
@@ -237,7 +240,8 @@ const Home = () => {
             const blob = base64toBlob(imageFile);
             const url = URL.createObjectURL(blob);
 
-            await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
+            const processingResult = await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
+            console.log("processingResult", processingResult)
             .then((response) => {
                 toast.success("File uploaded successfully", {position:"top-right"})
                 setImageFilePath(url);
