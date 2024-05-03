@@ -14,8 +14,9 @@ export const uploadpdffile = async (req, res) => {
         //const pdfData = await new UploadPdf(req.body);
         //const savedPDF = await pdfData.save();
 
-        const savedPDF =await axios.post("http://121.140.65.24:5000/pdf/predict");
-        res.status(200).json(savedPDF);
+        const savedPDF =await axios.post("http://121.140.65.24:5000/pdf/predict?pdf_url=https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
+        console.log(savedPDF.data);
+        res.status(200).json(savedPDF.data);
 
     } catch (error) {
         res.status(500).json({error: error});
@@ -87,17 +88,21 @@ export const getDetectedChemPage = async (req,res) => {
 }
 
 export const uploadimagefile = async (req, res) => {
-    try {
 
+    try {
         req.body.fileName = req.file.filename;
         req.body.filePath = req.file.path;
         req.body.fileSize = req.file.size;
         req.body.fileOriginalName = req.file.originalname;
 
-        const imageData = await new UploadImage(req.body);
-        const savedImage = await imageData.save();
-        res.status(200).json(savedImage);
+        //const imageData = await new UploadImage(req.body);
+        //const savedImage = await imageData.save();
 
+        // const request = await axios.post("https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
+        const savedImage = await axios.post(" http://121.140.65.24:5000/image/predict?img_url=https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
+    
+        res.status(200).json(savedImage.data.result[0].url);
+        
     } catch (error) {
         res.status(500).json({error: error});
     }

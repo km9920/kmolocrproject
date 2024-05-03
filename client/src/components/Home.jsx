@@ -19,6 +19,8 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 const Home = () => {
 
+    axios.defaults.timeout = 5000000;
+
     const [pagesurl, setPagesurl] = useState([]);
 
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
@@ -149,11 +151,11 @@ const Home = () => {
             const url = URL.createObjectURL(blob);
 
             const processingResult = await axios.post("http://localhost:5000/api/uploads/pdffileupload", formData)
-            console.log('processingResult', processingResult)
             .then((response) => {
-                toast.success("File uploaded successfully", {position:"top-right"})
                 fetchDataByFileName(pdfSelectedFile.name);
                 setPdfFilePath(url);
+                console.log(response.data.result[0].url);
+                setPagesurl(response.data.result[0].url);
             }).catch(error => console.log(error))
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -241,10 +243,9 @@ const Home = () => {
             const blob = base64toBlob(imageFile);
             const url = URL.createObjectURL(blob);
 
-            await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
+            const request = await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
             .then((response) => {
-                toast.success("File uploaded successfully", {position:"top-right"})
-                setImageFilePath(url);
+                setImageFilePath(response.data);
             }).catch(error => console.log(error))
         } catch (error) {
             console.error('Error uploading file:', error);
