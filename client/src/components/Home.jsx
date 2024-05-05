@@ -17,6 +17,14 @@ import "./css/Home.css"
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
+// screen image capture
+import { ScreenCapture } from 'react-screen-capture';
+
+// small modal for selecting capture vs upload image mode
+import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
+import { useRef } from "react";
+
 const Home = () => {
 
     axios.defaults.timeout = 5000000;
@@ -91,13 +99,7 @@ const Home = () => {
         }
     };
 
-
-
-
-
-
-
-
+    // state variables
     const [pdfFile, setPdfFile] = useState(null);
     const [pdfFilePath, setPdfFilePath] = useState('');
     const [pdfSelectedFile, setPdfSelectedFile] = useState(null);
@@ -109,6 +111,29 @@ const Home = () => {
     const [imageSelectedFile, setImageSelectedFile] = useState(null);
     const [imageFileName, setImageFileName] = useState('');
     
+    // state for screen capture
+    const handleScreenCapture = (screenCapture) => {
+        setImageFileName("screen-capture.png");
+        setImageSelectedFile(screenCapture);
+
+        let reader = new FileReader();
+        
+        reader.onloadend = () => {
+            setImageFile(reader.result);
+        };
+
+        const blob = new Blob([screenCapture], { type: 'image/png' });
+
+        reader.readAsDataURL(blob);
+        closeImgModal();
+    }
+
+    const [imgModal, setImgModal] = useState(false);
+    const closeImgModal = () => setImgModal(false);
+    const showImgModal = () => setImgModal(true);
+
+    const hiddenImgFileInput = useRef(null);
+    const handleClickImgUpload = ()=>{hiddenImgFileInput.current.click();};
 
     const handlePdfSelect = (event) => {
         const file = event.target.files[0];
@@ -195,12 +220,12 @@ const Home = () => {
         }
     };
 
-
     const handleImageSelect = (event) => {
         const file = event.target.files[0];
         setImageSelectedFile(file);
         setImageFileName(file.name);
         handleImageFile(file);
+        closeImgModal();
     };
     
     const handleImageDrop = (event) => {
@@ -222,12 +247,10 @@ const Home = () => {
         };
     };
     
-
     const handleImageUpload = async () => {
         try {
             const formData = new FormData();
             formData.append('image', imageSelectedFile);
-
             const imageContentType = imageSelectedFile.type;
 
             const base64toBlob = (data) => {
@@ -298,14 +321,35 @@ const Home = () => {
                 </div>
                 <div className="w-col w-col-6">
                     <div className='upload-section' onDrop={handleImageDrop} onDragOver={handleImageDragOver}>
-                        <input id="imageInput" className='file-input' type="file" accept=".jpg, .jpeg, .png" onChange={handleImageSelect} />
+                        {/* <input id="imageInput" className='file-input' type="file" accept=".jpg, .jpeg, .png" onChange={handleImageSelect} />
                         <label htmlFor="imageInput" className="file-label">
+                            <FontAwesomeIcon icon={faCopy} size="2x" />
+                            <div>{imageFileName || 'Choose or drag an image file'}</div>
+                        </label> */}
+                        <label onClick={showImgModal} className = "file-label">
                             <FontAwesomeIcon icon={faCopy} size="2x" />
                             <div>{imageFileName || 'Choose or drag an image file'}</div>
                         </label>
                         <button className='process-button' onClick={handleImageUpload}>Upload Image</button>
                     </div>
                 </div>
+                <Modal show={imgModal} onHide={closeImgModal}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Upload Image File</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>Choose image upload mode</Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleClickImgUpload}>
+                            Upload image from directory
+                            <input id="imageInput" className='file-input' type="file" accept=".jpg, .jpeg, .png" onChange={handleImageSelect} ref={hiddenImgFileInput} style={{display: "none"}}/>
+                        </Button>
+                        <ScreenCapture onEndCapture={handleScreenCapture}>
+                            {({ onStartCapture }) => (
+                                <Button variant = 'primary' onClick={onStartCapture}>Capture screenshot</Button>
+                            )}
+                        </ScreenCapture>
+                    </Modal.Footer>
+                </Modal>
                 {imageFilePath &&
                         <div className='imagefilepath'>
                             <div className='image-container'>
