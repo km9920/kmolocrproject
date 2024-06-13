@@ -59,45 +59,47 @@ const Home = () => {
     };
     
     const renderThumbnailItem = (props) => {
-        const pageIndex = props.pageIndex + 1;
-
-        if (pdfSelectedPages.includes(pageIndex)) {
-            return (
+        const pageIndex = props.pageIndex;
+    
+        const moleculeEntries = moleculePages.filter(item => item.page === pageIndex);
+    
+        return moleculeEntries.map((moleculePage, index) => (
+            <div
+                key={`${moleculePage.page}-${moleculePage.id}`}  // Use a combination of page and unique identifier
+                className="custom-thumbnail-item"
+                data-testid={`thumbnail-${moleculePage.page}-${moleculePage.id}`}
+                style={{
+                    backgroundColor: props.pageIndex === props.currentPage ? 'rgba(0, 0, 0, 0.3)' : '#fff',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    width: '100%',
+                }}
+            >
+                <div style={{ marginBottom: '0.5rem' }} onClick={props.onJumpToPage}>
+                    <img src={moleculePage.url} alt={`Thumbnail ${moleculePage.page}-${moleculePage.id}`} />
+                </div>
                 <div
-                    key={props.pageIndex}
-                    className="custom-thumbnail-item"
-                    data-testid={`thumbnail-${props.pageIndex}`}
                     style={{
-                        backgroundColor: props.pageIndex === props.currentPage ? 'rgba(0, 0, 0, 0.3)' : '#fff',
-                        cursor: 'pointer',
-                        padding: '0.5rem',
-                        width: '100%',
+                        alignItems: 'center',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        margin: '0 auto',
+                        width: '100px',
                     }}
                 >
-                    <div style={{ marginBottom: '0.5rem' }} onClick={props.onJumpToPage}>
-                        <img src={pagesurl[props.pageIndex]} alt={`Thumbnail ${props.pageIndex}`} />
-                    </div>
-                    <div
-                        style={{
-                            alignItems: 'center',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            margin: '0 auto',
-                            width: '100px',
-                        }}
-                    >
-                        
-                        <div style={{ alignItems: 'center',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            margin: '0 auto', }}> {props.renderPageLabel}</div>
-                    </div>
+                    <div style={{
+                        alignItems: 'center',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        margin: '0 auto',
+                    }}> {props.renderPageLabel}</div>
                 </div>
-            );
-        } else {
-            return null;
-        }
+            </div>
+        ));
     };
+    
+    
+    
 
     // state variables
     const [pdfFile, setPdfFile] = useState(null);
@@ -108,6 +110,9 @@ const Home = () => {
     
     const [imageFile, setImageFile] = useState(null);
     const [imageFilePath, setImageFilePath] = useState('');
+    const [predictedImageFilePath, setPredictedImageFilePath] = useState('');
+    const [smiles, setSmiles] = useState('');
+    const [properties, setProperties] = useState('');
     const [imageSelectedFile, setImageSelectedFile] = useState(null);
     const [imageFileName, setImageFileName] = useState('');
     
@@ -154,7 +159,7 @@ const Home = () => {
     const handlePdfDragOver = (event) => {
         event.preventDefault();
     };
-
+    const [moleculePages, setMoleculePages] = useState([]);
     const handlePdfUpload = async () => {
         try {
             const formData = new FormData();
@@ -177,17 +182,19 @@ const Home = () => {
 
             const processingResult = await axios.post("http://localhost:5000/api/uploads/pdffileupload", formData)
             .then((response) => {
-                fetchDataByFileName(pdfSelectedFile.name);
-                setPdfFilePath(url);
-                console.log(response.data.result[0].url);
-                setPagesurl(response.data.result[0].url);
-            }).catch(error => console.log(error))
+                if (response.data.result && Array.isArray(response.data.result)) {
+                    const molecules = response.data.result.filter(item => item.class === 'molecule');
+                    setPdfFilePath(url);
+                    setMoleculePages(molecules.map(item => ({
+                        page: item.page,
+                        url: item.url,
+                        id: item['object number']  // Assuming 'object number' is a unique identifier
+                    })));
+                }}).catch(error => console.log(error))
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     }
-
-
 
     useEffect(() => {
         const fetchData = async () => {
@@ -196,8 +203,6 @@ const Home = () => {
                     const pdfFileName = pdfSelectedFile.name;
                     const response = await axios.get(`http://localhost:5000/api/uploads/getdetectedchempage/${pdfFileName}`);
                     const { pages, pagesurl } = response.data;  
-                    console.log("Pages:", pages);
-                    console.log("Pages URLs:", pagesurl);
                     //const detectedChemPage = response.data;
                     setPdfSelectedPages(pages);
                 }
@@ -209,6 +214,7 @@ const Home = () => {
         fetchData();
     }, [pdfSelectedFile]);
 
+    {/* 
     const fetchDataByFileName = async (fileName) => {
         try {
             const response = await axios.get(`http://localhost:5000/api/uploads/getdetectedchempage/${fileName}`);
@@ -219,7 +225,7 @@ const Home = () => {
             console.error('Error fetching Detection data:', error);
         }
     };
-
+    */}
     const handleImageSelect = (event) => {
         const file = event.target.files[0];
         setImageSelectedFile(file);
@@ -268,7 +274,11 @@ const Home = () => {
 
             const request = await axios.post("http://localhost:5000/api/uploads/imagefileupload", formData)
             .then((response) => {
-                setImageFilePath(response.data);
+                //console.log(response.data);
+                setImageFilePath(response.data.result[0].url);
+                setPredictedImageFilePath(response.data.result[0].properties.Predicted_image);
+                setSmiles(response.data.result[0].SMILES);
+                setProperties(response.data.result[0].properties);
             }).catch(error => console.log(error))
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -302,8 +312,13 @@ const Home = () => {
         <div className="section">
             <div className="container">
                 <div className="intro-wrap">
-                    <h1 className="heading-2">K-molocr</h1>
-                    <p>description description description description description description description description description description description description description description description description description description description description description description description description description description description </p>
+                    <h1 className="heading-2">
+                        K-molocr
+                        <br />
+                        <br />
+                        Supported By Surromind
+                    </h1>
+                    
                 </div>
             </div>
         </div>
@@ -354,17 +369,23 @@ const Home = () => {
                         <div className='imagefilepath'>
                             <div className='image-container'>
                                 <img src={imageFilePath} alt="Uploaded Preview" />
+                                <img src={predictedImageFilePath} alt="Uploaded Preview" />
                             </div>
                             <div className='data-container'>
-                                <p>SMILES: CN1C=NC2=C1C(=O)N(C(=O)N2C)C
+                                <p>SMILES : {smiles}
                                 <button onClick={() => handleCopyToClipboard('CN1C=NC2=C1C(=O)N(C(=O)N2C)C')}>
                                     <FontAwesomeIcon icon={faCopy} />
                                 </button>
                                 </p>
-                                <p>IUPAC Nomenclature: 1,3,7-trimethylpurine-2,6-dione
-                                <button onClick={() => handleCopyToClipboard('1,3,7-trimethylpurine-2,6-dione')}>
-                                    <FontAwesomeIcon icon={faCopy} />
-                                </button>
+                                <p>
+                                    Properties:
+                                        <ul>
+                                            {properties && Object.keys(properties).filter(key => key !== 'Predicted_image' && key !== 'add_prefix_rnd_number').map((key) => (
+                                                <li key={key}>
+                                                    {key}: {properties[key]}
+                                                </li>
+                                            ))}
+                                        </ul>
                                 </p>
                             </div>
                         </div>

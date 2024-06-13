@@ -1,21 +1,42 @@
+import AWS from 'aws-sdk';
+import fs from 'fs';
+import path from 'path';
 import UploadPdf from '../model/uploadPdfModel.js';
 import UploadImage from '../model/uploadImageModel.js';
 import Detections from "../model/detectionModel.js";
 import axios from 'axios';
 
+
+
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
+const s3 = new AWS.S3();
+
+const uploadFileToS3 = (file) => {
+    const fileStream = fs.createReadStream(file.path);
+    const uploadParams = {
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: `${Date.now()}_${path.basename(file.originalname)}`,
+        Body: fileStream,
+        ContentType: file.mimetype,
+        
+    };
+
+    return s3.upload(uploadParams).promise();
+}
+
 export const uploadpdffile = async (req, res) => {
     try {
 
-        req.body.fileName = req.file.filename;
-        req.body.filePath = req.file.path;
-        req.body.fileSize = req.file.size;
-        req.body.fileOriginalName = req.file.originalname;
+        const s3Response = await uploadFileToS3(req.file);
+        const fileUrl = s3Response.Location;
 
-        //const pdfData = await new UploadPdf(req.body);
-        //const savedPDF = await pdfData.save();
-
-        const savedPDF =await axios.post("http://121.140.65.24:5000/pdf/predict?pdf_url=https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
-        console.log(savedPDF.data);
+        const savedPDF =await axios.post(`http://121.140.65.24:5000/pdf/predict?pdf_url=${fileUrl}`);
+        const molecules = savedPDF.data.result.filter(item => item.class === 'molecule');
         res.status(200).json(savedPDF.data);
 
     } catch (error) {
@@ -90,18 +111,11 @@ export const getDetectedChemPage = async (req,res) => {
 export const uploadimagefile = async (req, res) => {
 
     try {
-        req.body.fileName = req.file.filename;
-        req.body.filePath = req.file.path;
-        req.body.fileSize = req.file.size;
-        req.body.fileOriginalName = req.file.originalname;
+        const s3Response = await uploadFileToS3(req.file);
+        const fileUrl = s3Response.Location;
 
-        //const imageData = await new UploadImage(req.body);
-        //const savedImage = await imageData.save();
-
-        // const request = await axios.post("https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
-        const savedImage = await axios.post(" http://121.140.65.24:5000/image/predict?img_url=https://kmolocr.s3.ap-northeast-2.amazonaws.com/10002.png");
-    
-        res.status(200).json(savedImage.data.result[0].url);
+        const savedImage = await axios.post(`http://121.140.65.24:5000/image/predict?img_url=${fileUrl}`);
+        res.status(200).json(savedImage.data);
         
     } catch (error) {
         res.status(500).json({error: error});
